@@ -1,7 +1,6 @@
 package com.tiendaTech.tienda.controller;
 
 import com.tiendaTech.tienda.service.ProductoService;
-import java.math.BigDecimal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,6 +53,19 @@ public class ConsultaController {
         model.addAttribute("productos", lista);
         model.addAttribute("precioInf", precioInf);
         model.addAttribute("precioSup", precioSup);
+        return "/consultas/listado";
+    }
+
+    @PostMapping("/consultaAmpliada")
+    public String consultaAmpliada(@RequestParam() double precioInf,
+            @RequestParam() double precioSup,
+            @RequestParam() int existencias,
+            Model model) {
+        var lista = productoService.consultaAmpliada(precioInf, precioSup, existencias);
+        model.addAttribute("productos", lista);
+        model.addAttribute("precioInf", precioInf);
+        model.addAttribute("precioSup", precioSup);
+        model.addAttribute("existencias", existencias);
         return "/consultas/listado";
     }
 

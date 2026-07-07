@@ -63,7 +63,7 @@
     <div th:replace="~{consultas/fragmentos :: formConsulta('primary',#{consultas.derivadas},'/consultas/consultaDerivada')}"/>
     <div th:replace="~{consultas/fragmentos :: formConsulta('warning',#{consultas.jpql},'/consultas/consultaJPQL')}"/>
     <div th:replace="~{consultas/fragmentos :: formConsulta('success',#{consultas.sql},'/consultas/consultaSQL')}"/>
-    <div class='card'><p>Acá va su Práctica #2</p></div>
+    <div th:replace="~{consultas/fragmentos :: formConsultaAmpliada('danger',#{consultas.ampliada},'/consultas/consultaAmpliada')}"/>
 </section>
 
 <!-- fragmento 4 para mostrar el formulario factorizado -->
@@ -82,6 +82,39 @@
                 <div class='mb-3'>
                     <label>[[#{consultas.precio.superior}]]</label>
                     <input type="number" name='precioSup' th:value='${precioSup}'
+                           class='form-control' min="0" required/>
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                <button type='submit' class='btn text-white' th:classappend="${'btn-'+colorForm}">
+                    <i class='fa-solid fa-magnifying-glass'></i> [[${textoForm}]]
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- fragmento 5 para mostrar el formulario de la Práctica #2 -->
+<div th:fragment='formConsultaAmpliada(colorForm, textoForm, urlForm)'>
+    <form method="post" th:action='@{${urlForm}}' class='was-validated'>
+        <div class='card p-2'>
+            <div class="card-header text-center text-white" th:classappend="${'bg-'+colorForm}">
+                <h5>[[${textoForm}]]</h5>
+            </div>
+            <div class="card-body">
+                <div class='mb-3'>
+                    <label>[[#{consultas.precio.inferior}]]</label>
+                    <input type="number" name='precioInf' th:value='${precioInf}'
+                           class='form-control' min="0" required/>
+                </div>
+                <div class='mb-3'>
+                    <label>[[#{consultas.precio.superior}]]</label>
+                    <input type="number" name='precioSup' th:value='${precioSup}'
+                           class='form-control' min="0" required/>
+                </div>
+                <div class='mb-3'>
+                    <label>[[#{consultas.existencias}]]</label>
+                    <input type="number" name='existencias' th:value='${existencias}'
                            class='form-control' min="0" required/>
                 </div>
             </div>
