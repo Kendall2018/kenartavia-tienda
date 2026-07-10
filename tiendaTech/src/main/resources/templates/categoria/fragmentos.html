@@ -68,7 +68,7 @@
                                     <td>[[${categoria.descripcion}]]</td>
                                     <td><img th:src="@{${categoria.rutaImagen}}" alt="noData" height="75"/></td>
                                     <td th:text="${categoria.activo} ? 'Activa':'Inactiva'"></td>
-                                    <td>
+                                    <td sec:authorize="hasRole('ROLE_ADMIN')">
                                         <button type="button" class="btn btn-danger"
                                                 data-bs-toggle="modal" data-bs-target="#confirmModal"
                                                 th:data-bs-id="${categoria.idCategoria}"
@@ -76,7 +76,7 @@
                                             <i class="fa-solid fa-trash"></i> [[#{accion.eliminar}]]
                                         </button>                                           
                                         <a th:href="@{/categoria/modificar/}+${categoria.idCategoria}" class="btn btn-warning">
-                                            <i class="fas fa-pencil-alt"></i> [[#{accion.actualizar}]]
+                                            <i class="fas fa-pencil-alt" ></i> [[#{accion.actualizar}]]
                                         </a>                                                
                                     </td>
                                 </tr>
