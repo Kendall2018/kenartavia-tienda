@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+
+    <body>
+
+        <!-- Buscar usuario -->
+        <section th:fragment="buscar"
+                 class="py-4">
+
+            <div class="container">
+
+                <div class="card">
+
+                    <div class="card-header bg-primary text-white">
+
+                        <h4 class="mb-0">
+
+                            <i class="fa-solid fa-user-shield"></i>
+                            Gestión de roles de usuarios
+                        </h4>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <form method="GET"
+                              th:action="@{/usuario_rol/mantenimiento}">
+
+                            <div class="row align-items-end">
+
+                                <div class="col-md-9">
+
+                                    <label for="username"
+                                           class="form-label">
+                                        Nombre de usuario
+                                    </label>
+
+                                    <input type="text"
+                                           id="username"
+                                           name="username"
+                                           class="form-control"
+                                           th:value="${param.username != null
+                                           ? param.username[0]
+                                           : ''}"
+                                           placeholder="Digite el nombre de usuario"
+                                           required="required"/>
+
+                                </div>
+
+                                <div class="col-md-3 d-grid">
+
+                                    <button type="submit"
+                                            class="btn btn-primary">
+
+                                        <i class="fa-solid fa-magnifying-glass"></i>
+                                        Buscar usuario
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </form>
+
+                        <div class="alert alert-danger mt-3"
+                             th:if="${error != null}"
+                             th:text="${error}">
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Mantenimiento de roles -->
+        <section th:fragment="mantenimiento"
+                 class="pb-4">
+
+            <div class="container">
+
+                <div class="row">
+
+                    <!-- Información del usuario -->
+                    <div class="col-md-4">
+
+                        <div class="card h-100">
+
+                            <div class="card-header bg-info text-white">
+
+                                <h5 class="mb-0">
+                                    Usuario
+                                </h5>
+
+                            </div>
+
+                            <div class="card-body text-center">
+
+                                <img th:if="${usuarioEncontrado.rutaImagen != null
+                                     and !usuarioEncontrado.rutaImagen.isBlank()}"
+                                     th:src="@{${usuarioEncontrado.rutaImagen}}"
+                                     alt="Imagen del usuario"
+                                     class="img-fluid rounded-circle mb-3"
+                                     style="width: 130px;
+                                            height: 130px;
+                                            object-fit: cover;"/>
+
+                                <i th:if="${usuarioEncontrado.rutaImagen == null
+                                   or usuarioEncontrado.rutaImagen.isBlank()}"
+                                   class="fa-solid fa-circle-user fa-7x mb-3">
+                                </i>
+
+                                <h5 th:text="${usuarioEncontrado.username}"></h5>
+
+                                <p class="mb-1">
+
+                                    <strong>Nombre:</strong>
+
+                                    <span th:text="${usuarioEncontrado.nombre
+                                          + ' '
+                                          + usuarioEncontrado.apellidos}">
+                                    </span>
+
+                                </p>
+
+                                <p class="mb-1">
+
+                                    <strong>Correo:</strong>
+
+                                    <span th:text="${usuarioEncontrado.correo}">
+                                    </span>
+
+                                </p>
+
+                                <p class="mb-0">
+
+                                    <strong>Estado:</strong>
+
+                                    <span th:if="${usuarioEncontrado.activo}"
+                                          class="badge bg-success">
+                                        Activo
+                                    </span>
+
+                                    <span th:unless="${usuarioEncontrado.activo}"
+                                          class="badge bg-secondary">
+                                        Inactivo
+                                    </span>
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Roles asignados -->
+                    <div class="col-md-4">
+
+                        <div class="card h-100">
+
+                            <div class="card-header bg-secondary text-white">
+
+                                <h5 class="mb-0">
+                                    Roles asignados
+                                </h5>
+
+                            </div>
+
+                            <div class="card-body">
+
+                                <div th:if="${usuarioEncontrado.roles != null
+                                     and !usuarioEncontrado.roles.empty}">
+
+                                    <div class="list-group">
+
+                                        <div th:each="rol : ${usuarioEncontrado.roles}"
+                                             class="list-group-item
+                                                    d-flex
+                                                    justify-content-between
+                                                    align-items-center">
+
+                                            <span>
+
+                                                <i class="fa-solid fa-shield-halved"></i>
+
+                                                <span th:text="${rol.rol}"></span>
+
+                                            </span>
+
+                                            <form method="POST"
+                                                  th:action="@{/usuario_rol/revocar}">
+
+                                                <input type="hidden"
+                                                       name="username"
+                                                       th:value="${usuarioEncontrado.username}"/>
+
+                                                <input type="hidden"
+                                                       name="idRol"
+                                                       th:value="${rol.idRol}"/>
+
+                                                <button type="submit"
+                                                        class="btn btn-danger btn-sm">
+
+                                                    <i class="fa-solid fa-trash"></i>
+                                                    Revocar
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <div th:if="${usuarioEncontrado.roles == null
+                                     or usuarioEncontrado.roles.empty}"
+                                     class="alert alert-warning">
+
+                                    El usuario no tiene roles asignados.
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Asignar un rol -->
+                    <div class="col-md-4">
+
+                        <div class="card h-100">
+
+                            <div class="card-header bg-success text-white">
+
+                                <h5 class="mb-0">
+                                    Asignar rol
+                                </h5>
+
+                            </div>
+
+                            <div class="card-body">
+
+                                <form method="POST"
+                                      th:action="@{/usuario_rol/asignar}">
+
+                                    <input type="hidden"
+                                           name="username"
+                                           th:value="${usuarioEncontrado.username}"/>
+
+                                    <div class="mb-3">
+
+                                        <label for="rol"
+                                               class="form-label">
+                                            Rol disponible
+                                        </label>
+
+                                        <select id="rol"
+                                                name="rol"
+                                                class="form-select"
+                                                required="required">
+
+                                            <option value="">
+                                                Seleccione un rol
+                                            </option>
+
+                                            <option th:each="rolDisponible
+                                                    : ${rolesDisponibles}"
+                                                    th:value="${rolDisponible.rol}"
+                                                    th:text="${rolDisponible.rol}">
+                                            </option>
+
+                                        </select>
+
+                                    </div>
+
+                                    <div class="d-grid">
+
+                                        <button type="submit"
+                                                class="btn btn-success">
+
+                                            <i class="fa-solid fa-plus"></i>
+                                            Asignar rol
+                                        </button>
+
+                                    </div>
+
+                                </form>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </body>
+</html>

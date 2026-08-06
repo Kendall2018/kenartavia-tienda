@@ -21,10 +21,12 @@ public class UsuarioService {
     private final FirebaseStorageService firebaseStorageService;
     private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(UsuarioRepository usuarioRepository,
+    public UsuarioService(
+            UsuarioRepository usuarioRepository,
             RolRepository rolRepository,
             FirebaseStorageService firebaseStorageService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder
+    ) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.firebaseStorageService = firebaseStorageService;
@@ -36,6 +38,7 @@ public class UsuarioService {
         if (activo) {
             return usuarioRepository.findByActivoTrue();
         }
+
         return usuarioRepository.findAll();
     }
 
@@ -50,108 +53,248 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<Usuario> getUsuarioPorUsernameYPassword(String username,
-            String password) {
-        return usuarioRepository.findByUsernameAndPassword(username, password);
+    public Optional<Usuario> getUsuarioPorUsernameYPassword(
+            String username,
+            String password
+    ) {
+        return usuarioRepository.findByUsernameAndPassword(
+                username,
+                password
+        );
     }
 
     @Transactional(readOnly = true)
-    public Optional<Usuario> getUsuarioPorUsernameOCorreo(String username,
-            String correo) {
-        return usuarioRepository.findByUsernameOrCorreo(username, correo);
+    public Optional<Usuario> getUsuarioPorUsernameOCorreo(
+            String username,
+            String correo
+    ) {
+        return usuarioRepository.findByUsernameOrCorreo(
+                username,
+                correo
+        );
     }
 
     @Transactional(readOnly = true)
-    public boolean existeUsuarioPorUsernameOCorreo(String username,
-            String correo) {
-        return usuarioRepository.existsByUsernameOrCorreo(username, correo);
+    public boolean existeUsuarioPorUsernameOCorreo(
+            String username,
+            String correo
+    ) {
+        return usuarioRepository.existsByUsernameOrCorreo(
+                username,
+                correo
+        );
+    }
+
+    /*
+     * Obtiene un usuario y carga sus roles mientras la transacción
+     * todavía está activa. Esto evita errores de carga LAZY en la vista.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Usuario> getUsuarioConRolesPorUsername(
+            String username
+    ) {
+        Optional<Usuario> usuarioOpt
+                = usuarioRepository.findByUsername(username);
+
+        usuarioOpt.ifPresent(usuario -> usuario.getRoles().size());
+
+        return usuarioOpt;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Rol> getRoles() {
+        return rolRepository.findAll();
     }
 
     @Transactional
-    public void save(Usuario usuario, MultipartFile imagenFile, boolean encriptaClave) {
-        // Verificar si el correo ya existe, excluyendo el usuario actual        
-        final Integer idUser = usuario.getIdUsuario();        
-        Optional<Usuario> usuarioDuplicado = usuarioRepository.findByUsernameOrCorreo(null, usuario.getCorreo());
+    public void save(
+            Usuario usuario,
+            MultipartFile imagenFile,
+            boolean encriptaClave
+    ) {
+
+        final Integer idUser = usuario.getIdUsuario();
+
+        Optional<Usuario> usuarioDuplicado
+                = usuarioRepository.findByUsernameOrCorreo(
+                        null,
+                        usuario.getCorreo()
+                );
+
         if (usuarioDuplicado.isPresent()) {
             Usuario encontrado = usuarioDuplicado.get();
 
-            // Verifica si estamos en modo CREACIÓN (idUser == null) O si el ID encontrado NO es el mismo que estamos actualizando
-            if (idUser == null || !encontrado.getIdUsuario().equals(idUser)) {
-                throw new DataIntegrityViolationException("El correo ya está en uso por otro usuario.");
-            }
-        }
-        
-        //Se valida si la clave se va actualizar o si es un usuario nuevo se debe actualizar...
-        var asignarRol = false;
-        if (usuario.getIdUsuario() == null) {
-            if (usuario.getPassword() == null || usuario.getPassword().isBlank()) {
-                throw new IllegalArgumentException("La contraseña es obligatoria para nuevos usuarios.");
-            }
-            //La primera vez como es activación no se encripta...
-            usuario.setPassword(encriptaClave?passwordEncoder.encode(usuario.getPassword()):usuario.getPassword());
-            asignarRol = true;
-        } else {
-            if (usuario.getPassword() == null || usuario.getPassword().isBlank()) {
-                // El campo de password en el formulario viene vacío (no se desea actualizar).
-                // Recuperamos la contraseña HASHED existente de la base de datos.
-                Usuario usuarioExistente = usuarioRepository.findById(usuario.getIdUsuario())
-                        .orElseThrow(() -> new IllegalArgumentException("Usuario a modificar no encontrado."));
+            if (idUser == null
+                    || !encontrado.getIdUsuario().equals(idUser)) {
 
-                // Asignamos la contraseña existente al objeto "usuario" antes de guardarlo.                
-                usuario.setPassword(encriptaClave?passwordEncoder.encode(usuarioExistente.getPassword()):usuarioExistente.getPassword());
-            } else {
-                // El campo de password NO está vacío (se desea actualizar).
-                // Se encripta y se guarda la nueva contraseña.
-                usuario.setPassword(encriptaClave?passwordEncoder.encode(usuario.getPassword()):usuario.getPassword());                
+                throw new DataIntegrityViolationException(
+                        "El correo ya está en uso por otro usuario."
+                );
             }
         }
+
+        boolean asignarRol = false;
+
+        if (usuario.getIdUsuario() == null) {
+
+            if (usuario.getPassword() == null
+                    || usuario.getPassword().isBlank()) {
+
+                throw new IllegalArgumentException(
+                        "La contraseña es obligatoria para nuevos usuarios."
+                );
+            }
+
+            usuario.setPassword(
+                    encriptaClave
+                            ? passwordEncoder.encode(usuario.getPassword())
+                            : usuario.getPassword()
+            );
+
+            asignarRol = true;
+
+        } else {
+
+            Usuario usuarioExistente
+                    = usuarioRepository
+                            .findById(usuario.getIdUsuario())
+                            .orElseThrow(() -> new IllegalArgumentException(
+                            "Usuario a modificar no encontrado."
+                    ));
+
+            /*
+             * Conserva los roles actuales cuando se modifica un usuario
+             * desde el mantenimiento normal.
+             */
+            usuario.setRoles(usuarioExistente.getRoles());
+
+            if (usuario.getPassword() == null
+                    || usuario.getPassword().isBlank()) {
+
+                usuario.setPassword(
+                        usuarioExistente.getPassword()
+                );
+
+            } else if (encriptaClave) {
+
+                usuario.setPassword(
+                        passwordEncoder.encode(usuario.getPassword())
+                );
+            }
+        }
+
         usuario = usuarioRepository.save(usuario);
-        if (imagenFile != null && !imagenFile.isEmpty()) { //Si no está vacío... pasaron una imagen...            
+
+        if (imagenFile != null && !imagenFile.isEmpty()) {
+
             try {
-                String rutaImagen = firebaseStorageService.uploadImage(
-                        imagenFile, "usuario", usuario.getIdUsuario());
+                String rutaImagen
+                        = firebaseStorageService.uploadImage(
+                                imagenFile,
+                                "usuario",
+                                usuario.getIdUsuario()
+                        );
+
                 usuario.setRutaImagen(rutaImagen);
                 usuarioRepository.save(usuario);
+
             } catch (IOException e) {
+                throw new IllegalStateException(
+                        "No fue posible guardar la imagen del usuario.",
+                        e
+                );
             }
         }
+
         if (asignarRol) {
-            //Si se está creando el usuario, se crea el rol por defecto "USER"
-            asignarRolPorUsername(usuario.getUsername(), "USER");
+            asignarRolPorUsername(
+                    usuario.getUsername(),
+                    "USER"
+            );
         }
     }
 
     @Transactional
     public void delete(Integer idUsuario) {
-        // Verifica si la categoría existe antes de intentar eliminarlo
+
         if (!usuarioRepository.existsById(idUsuario)) {
-            // Lanza una excepción para indicar que el usuario no fue encontrado
             throw new IllegalArgumentException(
-                    "El usuario con ID " + idUsuario + " no existe.");
+                    "El usuario con ID "
+                    + idUsuario
+                    + " no existe."
+            );
         }
+
         try {
             usuarioRepository.deleteById(idUsuario);
+
         } catch (DataIntegrityViolationException e) {
-            // Excepción para encapsular el problema de integridad de datos
             throw new IllegalStateException(
-                    "No se puede eliminar el usuario. Tiene datos asociados.", e);
+                    "No se puede eliminar el usuario. Tiene datos asociados.",
+                    e
+            );
         }
     }
 
     @Transactional
-    public Usuario asignarRolPorUsername(String username, String rolStr) {
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByUsername(username);
-        if (usuarioOpt.isEmpty()) {
-            throw new RuntimeException("Usuario no encontrado: " + username);
+    public Usuario asignarRolPorUsername(
+            String username,
+            String rolStr
+    ) {
+
+        Usuario usuario = usuarioRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException(
+                "Usuario no encontrado: " + username
+        ));
+
+        Rol rol = rolRepository
+                .findByRol(rolStr)
+                .orElseThrow(() -> new IllegalArgumentException(
+                "Rol no encontrado: " + rolStr
+        ));
+
+        if (usuario.getRoles().contains(rol)) {
+            throw new IllegalStateException(
+                    "El usuario ya tiene asignado el rol " + rolStr + "."
+            );
         }
-        Usuario usuario = usuarioOpt.get();
-        Optional<Rol> rolOpt = rolRepository.findByRol(rolStr);
-        if (rolOpt.isEmpty()) {
-            throw new RuntimeException("Rol no encontrado.");
-        }
-        Rol rol = rolOpt.get();
+
         usuario.getRoles().add(rol);
+
+        return usuarioRepository.save(usuario);
+    }
+
+    @Transactional
+    public Usuario revocarRolPorUsername(
+            String username,
+            Integer idRol
+    ) {
+
+        Usuario usuario = usuarioRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException(
+                "Usuario no encontrado: " + username
+        ));
+
+        Rol rol = rolRepository
+                .findById(idRol)
+                .orElseThrow(() -> new IllegalArgumentException(
+                "El rol indicado no existe."
+        ));
+
+        boolean eliminado = usuario
+                .getRoles()
+                .removeIf(rolUsuario
+                        -> rolUsuario.getIdRol().equals(rol.getIdRol())
+                );
+
+        if (!eliminado) {
+            throw new IllegalStateException(
+                    "El usuario no tiene asignado ese rol."
+            );
+        }
+
         return usuarioRepository.save(usuario);
     }
 }
- 

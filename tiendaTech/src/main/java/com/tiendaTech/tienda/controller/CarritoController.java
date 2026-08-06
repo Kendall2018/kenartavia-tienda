@@ -35,7 +35,7 @@ public class CarritoController {
         List<Item> carrito = carritoService.obtenerCarrito(session);
 
         model.addAttribute("carritoItems", carrito);
-        model.addAttribute("totalCarrito", carritoService.calcularTotal(carrito));
+//        model.addAttribute("totalCarrito", carritoService.calcularTotal(carrito));
 
         return "/carrito/listado";
     }
